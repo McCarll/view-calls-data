@@ -1,0 +1,164 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1251" />
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+    <script src="https://cdn.rawgit.com/kimmobrunfeldt/progressbar.js/0.6.1/dist/progressbar.js"></script>
+    <script src="//code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <script type="text/javascript">
+        
+      google.load("visualization", "1", {packages:["corechart"]});
+      google.setOnLoadCallback(drawChart);
+      
+    function drawChart(array, place) {
+        var i = 0;
+        var data = new google.visualization.DataTable();          
+        data.addColumn('number', 'Time');
+        data.addColumn('number', 'calls');          
+          for(i = 0; i < array.length; i++)
+              data.addRow([i, array[i]]);
+        var options = {
+          title: 'Calls',
+          hAxis: {title: 'Calls',  titleTextStyle: {color: '#333'}},
+          vAxis: {minValue: 0}
+        };
+        switch(place){
+            case 1:{
+                chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
+                chart.draw(data, options);
+                break;
+            }
+            case 2:{
+                chart = new google.visualization.AreaChart(document.getElementById('chart_div_From_To'));
+                chart.draw(data, options);
+                break;
+            }
+        }        
+        
+    }
+  
+$(document).ready(function(){
+    var array = [];
+    $("select").change(function(){
+        $("select option:selected").each(function(){
+            $.ajax({
+                type: 'POST',
+                url: 'index.php',                    
+                data:{
+                    dates: $(this).text(), 
+                    getCalls: true
+                },			
+                success: function(data){  
+                    var result = jQuery.parseJSON(data); 
+                    for(var value in result){
+                        array[value] = result[value];
+                    }
+                    drawChart(array, 1);
+                }
+            })
+            .fail(function(f){
+                console.log("graph send fail:: " + f);
+            });
+        });
+    });			
+});
+$(document).ready(function(){
+    $.ajax({
+        type: 'POST',
+        url: 'index.php',
+        data:{    
+            getStore:true
+        },
+        success: function(data){
+            var result = jQuery.parseJSON(data);
+
+            for(var value in result){
+                var x = document.getElementById("store");
+                var option = document.createElement("option");
+                option.text = result[value];
+                x.add(option);
+            } 
+        }
+    })
+    .fail(function (f){
+        alert("fail html start ajax:: "  + f);
+    });
+});
+var dataFrom = null;
+var dataTo = null;
+$(function() {
+    $( "#datepickerFrom" ).datepicker({
+        minDate: '-5y, -2w',
+        maxDate: '+0d',    
+        onSelect: function(dateFrom){ 
+            dataFrom = dateFrom;
+//            alert( 'Selected: ' + dateText);
+        }     
+    });    
+  });
+$(function() {
+    $( "#datepickerTo" ).datepicker({
+        minDate: '-5y, -2w',
+        maxDate: '+0d',    
+        onSelect: function(dateTo){ 
+            dataTo = dateTo;
+//            alert( 'Selected: ' + dateText);
+        }     
+    });    
+  });
+
+
+$(document).ready(function(){
+    var array = [];     
+    $("#but").click(function(){
+    if(dataFrom < dataTo && dataFrom !== null && dataTo !== null){
+        $.ajax({
+            type: 'POST',
+            url: 'index.php',
+            data:{
+                dateFrom: dataFrom,
+                dateTo: dataTo,
+                sendDates:true
+            },
+            success: function(data){   
+                alert(data);
+                var result = jQuery.parseJSON(data);
+
+                for(var value in result){
+                    alert(result);
+                    array[value] = result[value];
+                }
+                drawChart(array, 2);   
+            }
+        })
+        .fail(function (f){
+        alert("fail send dates ajax:: "  + f);
+        });
+    } else{
+        alert("Ошибка ввода! dataFrom должно быть < dataTo")
+    }
+    });	
+});
+</script>
+   
+    
+  </head>
+  
+  <body>
+    <form>
+        <p>Количество звонков в день по часам. 
+            <select id ="store">            
+                <option value = "0">Select date</option>        
+            </select>
+        </p>
+    </form>
+      <p>Количество звонков по датам с - по по часам </p>
+      <p>Date from: <input type="text" id="datepickerFrom"></p>
+      <p>Date to: <input type="text" id="datepickerTo"></p>
+      <div id="progressbar"></div>
+      <button id = "but">To draw</button>
+    <div id="chart_div" style="width: 700px; height: 500px;"></div>
+    <div id="chart_div_From_To" style="width: 700px; height: 500px;"></div>
+  </body>
+</html>
